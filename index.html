@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mantra Counter</title>
+<style>
+  :root {
+    --bg: #1a1410;
+    --card: #241c16;
+    --accent: #d4a657;
+    --accent-soft: #8a6a3a;
+    --text: #f0e6d6;
+    --text-dim: #a89a85;
+    --good: #6fae7c;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: radial-gradient(circle at top, #2a2018, var(--bg));
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    padding: 20px 14px 60px;
+  }
+  .app { width: 100%; max-width: 420px; }
+  h1 {
+    text-align: center;
+    font-weight: 600;
+    font-size: 1.3rem;
+    letter-spacing: 0.5px;
+    margin: 6px 0 18px;
+    color: var(--accent);
+  }
+  .card {
+    background: var(--card);
+    border-radius: 18px;
+    padding: 18px;
+    margin-bottom: 14px;
+    border: 1px solid #3a2e22;
+  }
+  .counter-display {
+    text-align: center;
+    padding: 10px 0 4px;
+  }
+  .big-number {
+    font-size: 3.6rem;
+    font-weight: 700;
+    color: var(--accent);
+    line-height: 1;
+  }
+  .sub-label {
+    color: var(--text-dim);
+    font-size: 0.85rem;
+    margin-top: 4px;
+  }
+  .ring-progress {
+    display: flex;
+    justify-content: center;
+    margin: 14px 0;
+  }
+  .tap-btn {
+    width: 100%;
+    padding: 22px;
+    margin-top: 14px;
+    border: none;
+    border-radius: 16px;
+    background: linear-gradient(180deg, var(--accent), var(--accent-soft));
+    color: #1a1410;
+    font-size: 1.1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.08s ease;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+  .tap-btn:active { transform: scale(0.96); }
+  .row {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+  }
+  .small-btn {
+    flex: 1;
+    padding: 12px;
+    border-radius: 12px;
+    border: 1px solid #3a2e22;
+    background: #2e251c;
+    color: var(--text);
+    font-size: 0.9rem;
+    cursor: pointer;
+  }
+  .small-btn:active { background: #3a2e22; }
+  .settings-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 10px;
+    font-size: 0.88rem;
+    color: var(--text-dim);
+  }
+  .settings-row input {
+    width: 70px;
+    padding: 6px 8px;
+    border-radius: 8px;
+    border: 1px solid #3a2e22;
+    background: #181210;
+    color: var(--text);
+    text-align: center;
+    font-size: 0.9rem;
+  }
+  .section-title {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--accent);
+    margin-bottom: 10px;
+  }
+  .history-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid #2e251c;
+    font-size: 0.88rem;
+  }
+  .history-item:last-child { border-bottom: none; }
+  .history-item .date { color: var(--text-dim); }
+  .history-item .stats { color: var(--text); font-weight: 600; }
+  .empty-note {
+    color: var(--text-dim);
+    font-size: 0.85rem;
+    text-align: center;
+    padding: 8px 0;
+  }
+  .totals {
+    display: flex;
+    gap: 10px;
+  }
+  .totals .stat {
+    flex: 1;
+    text-align: center;
+    padding: 10px 4px;
+    background: #2e251c;
+    border-radius: 12px;
+  }
+  .totals .stat .num { font-size: 1.3rem; font-weight: 700; color: var(--accent); }
+  .totals .stat .lbl { font-size: 0.72rem; color: var(--text-dim); margin-top: 2px; }
+  .reset-link {
+    text-align: center;
+    margin-top: 6px;
+  }
+  .reset-link button {
+    background: none;
+    border: none;
+    color: #a85c4a;
+    font-size: 0.8rem;
+    cursor: pointer;
+    text-decoration: underline;
+  }
+  .loading { text-align: center; color: var(--text-dim); padding: 20px; }
+</style>
+</head>
+<body>
+<div class="app">
+  <h1>🪷 Mantra Counter</h1>
+
+  <div class="card">
+    <div class="counter-display">
+      <div class="big-number" id="countDisplay">0</div>
+      <div class="sub-label" id="roundLabel">Round 1 · 0 / 108</div>
+    </div>
+    <button class="tap-btn" id="tapBtn">Tap to Count</button>
+    <div class="row">
+      <button class="small-btn" id="undoBtn">↺ Undo</button>
+      <button class="small-btn" id="finishBtn">✓ Finish Session</button>
+    </div>
+    <div class="settings-row">
+      <span>Beads per mala</span>
+      <input type="number" id="malaSize" value="108" min="1">
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="section-title">All-Time Totals</div>
+    <div class="totals">
+      <div class="stat"><div class="num" id="totalMantras">0</div><div class="lbl">Mantras</div></div>
+      <div class="stat"><div class="num" id="totalRounds">0</div><div class="lbl">Malas</div></div>
+      <div class="stat"><div class="num" id="totalSessions">0</div><div class="lbl">Sessions</div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="section-title">Log a Past Session</div>
+    <div class="settings-row">
+      <span>Date</span>
+      <input type="date" id="manualDate" style="width:150px;">
+    </div>
+    <div class="settings-row">
+      <span>Entry type</span>
+      <select id="manualType" style="padding:6px 8px;border-radius:8px;border:1px solid #3a2e22;background:#181210;color:var(--text);">
+        <option value="rounds">Malas / rounds</option>
+        <option value="mantras">Raw mantra count</option>
+      </select>
+    </div>
+    <div class="settings-row">
+      <span id="manualAmountLabel">Number of malas</span>
+      <input type="number" id="manualAmount" min="0" step="0.5" placeholder="e.g. 3">
+    </div>
+    <button class="small-btn" id="manualAddBtn" style="width:100%;margin-top:10px;">+ Add Past Session</button>
+  </div>
+
+  <div class="card">
+    <div class="section-title">Session History</div>
+    <div id="historyList"><div class="loading">Loading…</div></div>
+    <div class="row">
+      <button class="small-btn" id="exportBtn">⬇ Export backup</button>
+      <button class="small-btn" id="importBtn">⬆ Import backup</button>
+    </div>
+    <input type="file" id="importFile" accept="application/json" style="display:none;">
+    <div class="reset-link"><button id="resetBtn">Clear all history</button></div>
+  </div>
+</div>
+
+<script>
+let count = 0;
+let malaSize = 108;
+let history = [];
+let loaded = false;
+
+const countDisplay = document.getElementById('countDisplay');
+const roundLabel = document.getElementById('roundLabel');
+const tapBtn = document.getElementById('tapBtn');
+const undoBtn = document.getElementById('undoBtn');
+const finishBtn = document.getElementById('finishBtn');
+const malaSizeInput = document.getElementById('malaSize');
+const historyList = document.getElementById('historyList');
+const totalMantrasEl = document.getElementById('totalMantras');
+const totalRoundsEl = document.getElementById('totalRounds');
+const totalSessionsEl = document.getElementById('totalSessions');
+const resetBtn = document.getElementById('resetBtn');
+
+function updateDisplay() {
+  countDisplay.textContent = count;
+  const round = Math.floor(count / malaSize) + 1;
+  const inRound = count % malaSize;
+  roundLabel.textContent = `Round ${round} · ${inRound} / ${malaSize}`;
+}
+
+function renderHistory() {
+  if (!history.length) {
+    historyList.innerHTML = '<div class="empty-note">No sessions logged yet.</div>';
+  } else {
+    historyList.innerHTML = history.slice().reverse().map((h, revIdx) => {
+      const idx = history.length - 1 - revIdx;
+      const rounds = (h.count / h.malaSize).toFixed(2);
+      const d = new Date(h.date);
+      const dateStr = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+      const dateVal = d.toISOString().slice(0,10);
+      const tag = h.manual ? ' <span style="color:#a89a85;font-weight:400;">(logged)</span>' : '';
+      return `<div class="history-item" id="hist-${idx}">
+        <div style="display:flex;justify-content:space-between;align-items:center;width:100%;">
+          <span class="date">${dateStr}</span>
+          <span class="stats">${h.count} mantras · ${rounds} malas${tag}</span>
+          <span style="display:flex;gap:6px;margin-left:8px;">
+            <button onclick="startEdit(${idx})" style="background:none;border:none;color:var(--accent);cursor:pointer;font-size:1rem;padding:2px;">✏️</button>
+            <button onclick="deleteSession(${idx})" style="background:none;border:none;color:#a85c4a;cursor:pointer;font-size:1rem;padding:2px;">🗑</button>
+          </span>
+        </div>
+        <div id="edit-${idx}" style="display:none;width:100%;margin-top:10px;padding-top:10px;border-top:1px solid #2e251c;">
+          <div class="settings-row">
+            <span>Date</span>
+            <input type="date" id="edit-date-${idx}" value="${dateVal}" style="width:150px;padding:6px 8px;border-radius:8px;border:1px solid #3a2e22;background:#181210;color:var(--text);">
+          </div>
+          <div class="settings-row">
+            <span>Mantras</span>
+            <input type="number" id="edit-count-${idx}" value="${h.count}" min="1" style="width:90px;padding:6px 8px;border-radius:8px;border:1px solid #3a2e22;background:#181210;color:var(--text);text-align:center;">
+          </div>
+          <div class="settings-row">
+            <span>Beads/mala</span>
+            <input type="number" id="edit-mala-${idx}" value="${h.malaSize}" min="1" style="width:70px;padding:6px 8px;border-radius:8px;border:1px solid #3a2e22;background:#181210;color:var(--text);text-align:center;">
+          </div>
+          <div style="display:flex;gap:8px;margin-top:10px;">
+            <button onclick="saveEdit(${idx})" style="flex:1;padding:10px;border-radius:10px;border:none;background:var(--accent);color:#1a1410;font-weight:700;cursor:pointer;">Save</button>
+            <button onclick="cancelEdit(${idx})" style="flex:1;padding:10px;border-radius:10px;border:1px solid #3a2e22;background:#2e251c;color:var(--text);cursor:pointer;">Cancel</button>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+  const totalMantras = history.reduce((s, h) => s + h.count, 0);
+  const totalRounds = history.reduce((s, h) => s + (h.count / h.malaSize), 0);
+  totalMantrasEl.textContent = totalMantras;
+  totalRoundsEl.textContent = totalRounds.toFixed(1);
+  totalSessionsEl.textContent = history.length;
+}
+
+function startEdit(idx) {
+  document.getElementById(`edit-${idx}`).style.display = 'block';
+}
+
+function cancelEdit(idx) {
+  document.getElementById(`edit-${idx}`).style.display = 'none';
+}
+
+function saveEdit(idx) {
+  const dateVal = document.getElementById(`edit-date-${idx}`).value;
+  const newCount = parseInt(document.getElementById(`edit-count-${idx}`).value, 10);
+  const newMala = parseInt(document.getElementById(`edit-mala-${idx}`).value, 10);
+  if (!dateVal || !newCount || !newMala) return;
+  history[idx].date = new Date(dateVal + 'T12:00:00').toISOString();
+  history[idx].count = newCount;
+  history[idx].malaSize = newMala;
+  history[idx].manual = true;
+  history.sort((a, b) => new Date(a.date) - new Date(b.date));
+  saveData();
+  renderHistory();
+}
+
+function deleteSession(idx) {
+  if (confirm('Delete this session?')) {
+    history.splice(idx, 1);
+    saveData();
+    renderHistory();
+  }
+}
+
+function loadData() {
+  try {
+    const raw = localStorage.getItem('mantra-history');
+    if (raw) {
+      const data = JSON.parse(raw);
+      history = data.history || [];
+      malaSize = data.malaSize || 108;
+      malaSizeInput.value = malaSize;
+    }
+  } catch (e) {
+    history = [];
+  }
+  loaded = true;
+  updateDisplay();
+  renderHistory();
+}
+
+function saveData() {
+  try {
+    localStorage.setItem('mantra-history', JSON.stringify({ history, malaSize }));
+  } catch (e) {
+    console.error('Save failed', e);
+  }
+}
+
+tapBtn.addEventListener('click', () => {
+  count++;
+  updateDisplay();
+  if (count % malaSize === 0) {
+    tapBtn.style.background = 'linear-gradient(180deg, #6fae7c, #4d8a5a)';
+    setTimeout(() => {
+      tapBtn.style.background = '';
+    }, 300);
+    if (navigator.vibrate) navigator.vibrate(40);
+  }
+});
+
+undoBtn.addEventListener('click', () => {
+  if (count > 0) count--;
+  updateDisplay();
+});
+
+finishBtn.addEventListener('click', async () => {
+  if (count === 0) return;
+  history.push({ date: new Date().toISOString(), count, malaSize });
+  await saveData();
+  renderHistory();
+  count = 0;
+  updateDisplay();
+});
+
+malaSizeInput.addEventListener('change', () => {
+  const v = parseInt(malaSizeInput.value, 10);
+  if (v > 0) {
+    malaSize = v;
+    updateDisplay();
+    saveData();
+  }
+});
+
+resetBtn.addEventListener('click', async () => {
+  if (confirm('Clear all session history? This cannot be undone.')) {
+    history = [];
+    await saveData();
+    renderHistory();
+  }
+});
+
+const manualDate = document.getElementById('manualDate');
+const manualType = document.getElementById('manualType');
+const manualAmount = document.getElementById('manualAmount');
+const manualAmountLabel = document.getElementById('manualAmountLabel');
+const manualAddBtn = document.getElementById('manualAddBtn');
+
+manualDate.valueAsDate = new Date();
+
+manualType.addEventListener('change', () => {
+  manualAmountLabel.textContent = manualType.value === 'rounds' ? 'Number of malas' : 'Number of mantras';
+  manualAmount.placeholder = manualType.value === 'rounds' ? 'e.g. 3' : 'e.g. 324';
+});
+
+manualAddBtn.addEventListener('click', async () => {
+  const amt = parseFloat(manualAmount.value);
+  if (!amt || amt <= 0) return;
+  const dateVal = manualDate.value ? new Date(manualDate.value + 'T12:00:00') : new Date();
+  const mantraCount = manualType.value === 'rounds'
+    ? Math.round(amt * malaSize)
+    : Math.round(amt);
+  history.push({ date: dateVal.toISOString(), count: mantraCount, malaSize, manual: true });
+  history.sort((a, b) => new Date(a.date) - new Date(b.date));
+  await saveData();
+  renderHistory();
+  manualAmount.value = '';
+});
+
+const exportBtn = document.getElementById('exportBtn');
+const importBtn = document.getElementById('importBtn');
+const importFile = document.getElementById('importFile');
+
+exportBtn.addEventListener('click', () => {
+  const data = JSON.stringify({ history, malaSize }, null, 2);
+  const blob = new Blob([data], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const stamp = new Date().toISOString().slice(0, 10);
+  a.href = url;
+  a.download = `mantra-counter-backup-${stamp}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+});
+
+importBtn.addEventListener('click', () => importFile.click());
+
+importFile.addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (evt) => {
+    try {
+      const data = JSON.parse(evt.target.result);
+      const incoming = data.history || [];
+      if (!Array.isArray(incoming)) throw new Error('bad format');
+      const merge = confirm(
+        `Found ${incoming.length} session(s) in this backup.\n\nOK = Merge with current history\nCancel = Replace current history entirely`
+      );
+      if (merge) {
+        const existingKeys = new Set(history.map(h => h.date + '_' + h.count));
+        incoming.forEach(h => {
+          const key = h.date + '_' + h.count;
+          if (!existingKeys.has(key)) {
+            history.push(h);
+            existingKeys.add(key);
+          }
+        });
+      } else {
+        history = incoming;
+      }
+      if (data.malaSize) {
+        malaSize = data.malaSize;
+        malaSizeInput.value = malaSize;
+      }
+      history.sort((a, b) => new Date(a.date) - new Date(b.date));
+      saveData();
+      renderHistory();
+      updateDisplay();
+      alert('Backup imported successfully.');
+    } catch (err) {
+      alert('Could not read this file. Make sure it is a valid backup exported from this app.');
+    }
+    importFile.value = '';
+  };
+  reader.readAsText(file);
+});
+
+loadData();
+</script>
+</body>
+</html>
